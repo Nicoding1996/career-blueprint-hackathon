@@ -2,7 +2,7 @@ const ZAI_API_KEY = process.env.REACT_APP_ZAI_API_KEY;
 const API_ENDPOINT = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 
 export const fetchJobSuggestionsFromZai = async (summary, city) => {
-    console.log("Attempting to fetch jobs with API Key:", ZAI_API_KEY ? "Key Found" : "Key NOT Found!");
+    
 
     const prompt = `Based on this career profile: "${summary}", and the target location "${city}", generate a list of 10 diverse and specific job titles. For each job, provide the title, a real company that hires for that role in the target location, and a 1-2 sentence description. Return the response as a valid JSON object with a single key "jobs" which is an array of objects. Each object in the array should have three keys: "title", "company", and "description".`;
 
@@ -58,7 +58,7 @@ export const fetchJobSuggestionsFromZai = async (summary, city) => {
         }
 
         const result = await response.json();
-        console.log("Full API Response from Z.ai:", JSON.stringify(result, null, 2)); // Log the full response for debugging
+        
 
         if (!result.choices || result.choices.length === 0) {
             console.error("API Error: 'choices' array is missing or empty in the response.");
@@ -71,7 +71,7 @@ export const fetchJobSuggestionsFromZai = async (summary, city) => {
             const toolCall = message.tool_calls[0];
             if (toolCall.function && toolCall.function.name === "get_job_suggestions") {
                 const jobData = JSON.parse(toolCall.function.arguments);
-                console.log("Successfully received jobs from Z.ai:", jobData.jobs);
+                
                 return jobData.jobs;
             }
         }
@@ -92,7 +92,7 @@ export const fetchJobSuggestionsFromZai = async (summary, city) => {
 };
 
 export const generateBrandingText = async (summary) => {
-    console.log("Attempting to generate branding text...");
+    
 
     const prompt = `Based on this career profile: "${summary}", do two things: 1. Write a compelling, professional 'About' section for a LinkedIn profile, in the first person. 2. Generate 5 resume-friendly bullet points that highlight the user's key strengths and career desires, starting each with an action verb. Format the response as a single block of text with clear headings for "LinkedIn Summary" and "Resume Bullet Points". Use markdown for the headings (e.g., "### LinkedIn Summary").`;
 
@@ -120,7 +120,7 @@ export const generateBrandingText = async (summary) => {
         const result = await response.json();
 
         if (result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.content) {
-            console.log("Successfully received branding text.");
+            
             return result.choices[0].message.content;
         } else {
             console.error("Unexpected API response structure for branding text:", result);
@@ -156,7 +156,7 @@ export const generateInterviewPrep = async (summary, jobTitle) => {
         const result = await response.json();
 
         if (result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.content) {
-            console.log("Successfully received interview prep text.");
+            
             return result.choices[0].message.content;
         } else {
             console.error("Unexpected API response structure for interview prep:", result);

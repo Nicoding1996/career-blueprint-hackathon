@@ -244,7 +244,7 @@ const CareerBlueprint = () => {
     const displayResults = (finalAnswers) => {
         const formatList = (arr) => {
             if (!arr || arr.length === 0) return 'not specified';
-            if (arr.length === 1) return arr;
+            if (arr.length === 1) return arr[0];
             if (arr.length === 2) return arr.join(' and ');
             return arr.slice(0, -1).join(', ') + ', and ' + arr.slice(-1);
         };
