@@ -1,6 +1,6 @@
 # 🚀 Career Blueprint AI
 
-**A personalized career co-pilot that transforms your self-assessment into an actionable job-seeking toolkit, powered by the Z.ai GLM-4.5 API.**
+**A personalized career co-pilot that transforms your self-assessment into an actionable job-seeking toolkit, powered by the Z.ai GLM-4.5 API!**
 
 ---
 
