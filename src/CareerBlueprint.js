@@ -1,6 +1,7 @@
 import { fetchJobSuggestionsFromZai, generateBrandingText } from './zaiService.js';
 import React, { useState } from 'react';
 import { sendEmail } from './emailService.js';
+import { marked } from 'marked';
 
 
 const questions = [
@@ -261,24 +262,24 @@ const CareerBlueprint = () => {
 
         handleFetchJobs(summaryText, userCity);
 
-        
+
         // --- ADD THIS LINE AT THE END ---
         sendResultsEmail(finalAnswers);
     };
 
     const handleBrandingRequest = async () => {
-            setIsBrandingLoading(true);
-            setBrandingText(''); // Clear any previous text
+        setIsBrandingLoading(true);
+        setBrandingText(''); // Clear any previous text
 
-            // We need the summary text to send to the AI. We can get it from the resultsHTML state.
-            // This is a simple way to strip the HTML tags to get the plain text.
-            const summaryText = resultsHTML.replace(/<[^>]*>?/gm, '');
+        // We need the summary text to send to the AI. We can get it from the resultsHTML state.
+        // This is a simple way to strip the HTML tags to get the plain text.
+        const summaryText = resultsHTML.replace(/<[^>]*>?/gm, '');
 
-            const result = await generateBrandingText(summaryText);
+        const result = await generateBrandingText(summaryText);
 
-            setBrandingText(result);
-            setIsBrandingLoading(false);
-        };
+        setBrandingText(result);
+        setIsBrandingLoading(false);
+    };
 
 
     const sendResultsEmail = (finalAnswers) => {
@@ -575,9 +576,10 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
 
                                 {/* This is where the result will be displayed */}
                                 {brandingText && (
-                                    <div className="mt-4 p-4 bg-gray-50 rounded-lg whitespace-pre-wrap font-sans text-sm text-gray-800 border">
-                                        {brandingText}
-                                    </div>
+                                    <div
+                                        className="mt-4 p-4 bg-gray-50 rounded-lg font-sans text-sm text-gray-800 border prose"
+                                        dangerouslySetInnerHTML={{ __html: marked(brandingText) }}
+                                    />
                                 )}
                             </div>
                         </div>
