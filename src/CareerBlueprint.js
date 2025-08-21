@@ -104,6 +104,7 @@ const CareerBlueprint = () => {
     const [userFamilyName, setUserFamilyName] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [jobLoader, setJobLoader] = useState(false);
+    const [userCity, setUserCity] = useState('');
     const [jobList, setJobList] = useState([]);
     const [jobError, setJobError] = useState(false);
     const [emailStatus, setEmailStatus] = useState('');
@@ -119,8 +120,8 @@ const CareerBlueprint = () => {
         if (direction === 'next') {
             // --- Logic for the Welcome Screen ---
             if (currentSection === 0) {
-                if (!userFirstName || !userFamilyName || !userEmail || !userEmail.includes('@')) {
-                    alert('Please fill in your first name, family name, and a valid email address.');
+                if (!userFirstName || !userFamilyName || !userEmail || !userEmail.includes('@') || !userCity) {
+                    alert('Please fill in all fields: First Name, Family Name, Email, and Target City.');
                     return;
                 }
                 // No need to set answers here, just move to the first question
@@ -256,7 +257,7 @@ const CareerBlueprint = () => {
         const date = new Date();
         setCompletionDate(date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
 
-        handleFetchJobs(summaryText);
+        handleFetchJobs(summaryText, userCity);
 
         // --- ADD THIS LINE AT THE END ---
         sendResultsEmail(finalAnswers);
@@ -312,16 +313,14 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
         sendEmail(templateParams, subject, setEmailStatus);
     };
 
-    const handleFetchJobs = async (summary) => {
+    const handleFetchJobs = async (summary, city) => {
         setJobLoader(true);
         setJobError(false);
         setJobList([]);
 
-        const userCity = "Toronto, Canada";
-
         try {
             // Now this correctly calls the function from zaiService.js
-            const jobs = await fetchJobSuggestionsFromZai(summary, userCity);
+            const jobs = await fetchJobSuggestionsFromZai(summary, city);
 
             if (jobs && jobs.length > 0) {
                 setJobList(jobs);
@@ -487,6 +486,18 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
                             </div>
                         </div>
 
+                        <div>
+                            <label htmlFor="userCity" className="block text-sm font-medium text-gray-700">Target City</label>
+                            <input
+                                type="text"
+                                id="userCity"
+                                className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                value={userCity}
+                                onChange={(e) => setUserCity(e.target.value)}
+                                placeholder='Be specific, e.g., "San Francisco, USA"'
+                            />
+                        </div>
+
                         <div className="mt-8 text-right">
                             <button onClick={() => navigate('next')} className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Start</button>
                         </div>
@@ -505,7 +516,7 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
 
                         {/* Job Suggestions Section */}
                         <div id="jobSuggestionsContainer" className="mt-8">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-4">Example Job Matches in Toronto, Canada</h3>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4">Example Job Matches in {userCity}</h3>
                             {jobLoader && (
                                 <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg">
                                     <div className="loader"></div>
