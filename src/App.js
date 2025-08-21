@@ -1,4 +1,4 @@
-import './App.css';
+// The import for App.css is now gone.
 import CareerBlueprint from './CareerBlueprint';
 
 function App() {

@@ -1,5 +1,7 @@
+import { fetchJobSuggestionsFromZai } from './zaiService.js';
 import React, { useState, useEffect } from 'react';
 import { sendEmail } from './emailService.js';
+
 
 const consultantEmail = "brkthru.consulting@gmail.com";
 
@@ -20,7 +22,7 @@ const questions = [
             { id: 'c7', title: "Organized Something Complex", icon: "🗂️" },
             { id: 'c8', title: "Overcame a Major Setback", icon: "💪" }
         ],
-        skills: [ "Problem-Solving", "Leadership", "Communication", "Creativity", "Technical Skill", "Decision-Making", "Organization", "Resilience", "Teamwork", "Analysis" ]
+        skills: ["Problem-Solving", "Leadership", "Communication", "Creativity", "Technical Skill", "Decision-Making", "Organization", "Resilience", "Teamwork", "Analysis"]
     },
     {
         title: "The Party Game",
@@ -58,7 +60,7 @@ const questions = [
         type: 'checkbox',
         key: 'coreValues',
         limit: 3,
-        options: [ "Autonomy", "Creativity", "Financial Security", "Helping Others", "Prestige", "Work-Life Balance", "Intellectual Challenge", "Leadership" ]
+        options: ["Autonomy", "Creativity", "Financial Security", "Helping Others", "Prestige", "Work-Life Balance", "Intellectual Challenge", "Leadership"]
     },
     {
         title: "Fields of Interest",
@@ -66,7 +68,7 @@ const questions = [
         type: 'checkbox',
         key: 'fieldsOfInterest',
         limit: 2,
-        options: [ "Technology", "Healthcare", "Education", "Arts & Entertainment", "Finance & Business", "Skilled Trades", "Government & Public Service", "Science & Research" ]
+        options: ["Technology", "Healthcare", "Education", "Arts & Entertainment", "Finance & Business", "Skilled Trades", "Government & Public Service", "Science & Research"]
     },
     {
         title: "Your Career Non-Negotiables",
@@ -110,107 +112,107 @@ const CareerBlueprint = () => {
     const [completionDate, setCompletionDate] = useState('');
     const [resultsHTML, setResultsHTML] = useState('');
 
-const navigate = (direction) => {
-    if (direction === 'back') {
-        setCurrentSection(currentSection - 1);
-        return;
-    }
-
-    if (direction === 'next') {
-        // --- Logic for the Welcome Screen ---
-        if (currentSection === 0) {
-            if (!userFirstName || !userFamilyName || !userEmail || !userEmail.includes('@')) {
-                alert('Please fill in your first name, family name, and a valid email address.');
-                return;
-            }
-            // No need to set answers here, just move to the first question
-            setCurrentSection(currentSection + 1);
+    const navigate = (direction) => {
+        if (direction === 'back') {
+            setCurrentSection(currentSection - 1);
             return;
         }
 
-        // --- Logic for all other questions ---
-        const { isValid, updatedAnswers } = saveSectionAnswers(currentSection);
-        if (!isValid) {
-            return; // Stop if validation fails
-        }
-        
-        // Update the state with the validated and processed answers
-        setUserAnswers(updatedAnswers);
+        if (direction === 'next') {
+            // --- Logic for the Welcome Screen ---
+            if (currentSection === 0) {
+                if (!userFirstName || !userFamilyName || !userEmail || !userEmail.includes('@')) {
+                    alert('Please fill in your first name, family name, and a valid email address.');
+                    return;
+                }
+                // No need to set answers here, just move to the first question
+                setCurrentSection(currentSection + 1);
+                return;
+            }
 
-        // --- THE CRITICAL TIMING FIX ---
-        // Check if we are on the LAST question
-        if (currentSection === questions.length) {
-            // Call displayResults immediately with the guaranteed up-to-date answers
-            displayResults(updatedAnswers);
-            // Now, navigate to the results page
-            setCurrentSection(currentSection + 1);
+            // --- Logic for all other questions ---
+            const { isValid, updatedAnswers } = saveSectionAnswers(currentSection);
+            if (!isValid) {
+                return; // Stop if validation fails
+            }
+
+            // Update the state with the validated and processed answers
+            setUserAnswers(updatedAnswers);
+
+            // --- THE CRITICAL TIMING FIX ---
+            // Check if we are on the LAST question
+            if (currentSection === questions.length) {
+                // Call displayResults immediately with the guaranteed up-to-date answers
+                displayResults(updatedAnswers);
+                // Now, navigate to the results page
+                setCurrentSection(currentSection + 1);
+            } else {
+                // If not the last question, just navigate to the next one
+                setCurrentSection(currentSection + 1);
+            }
+            return;
+        }
+
+        // --- Logic for Start Over or other direct navigation ---
+        if (direction === 0) {
+            setCurrentSection(0);
+            setUserAnswers(initialAnswers);
+            setUserFirstName('');
+            setUserFamilyName('');
+            setUserEmail('');
+            setResultsHTML(''); // Clear previous results
         } else {
-            // If not the last question, just navigate to the next one
-            setCurrentSection(currentSection + 1);
+            setCurrentSection(direction);
         }
-        return;
-    }
-
-    // --- Logic for Start Over or other direct navigation ---
-    if (direction === 0) {
-        setCurrentSection(0);
-        setUserAnswers(initialAnswers);
-        setUserFirstName('');
-        setUserFamilyName('');
-        setUserEmail('');
-        setResultsHTML(''); // Clear previous results
-    } else {
-        setCurrentSection(direction);
-    }
-};
+    };
 
     const saveSectionAnswers = (sectionIndex) => {
-    const sectionData = questions[sectionIndex - 1];
-    if (!sectionData) return { isValid: true, updatedAnswers: userAnswers };
+        const sectionData = questions[sectionIndex - 1];
+        if (!sectionData) return { isValid: true, updatedAnswers: userAnswers };
 
-    const newAnswers = { ...userAnswers };
+        const newAnswers = { ...userAnswers };
 
-    // --- Validation Logic (remains the same) ---
-    if (sectionData.type === 'cardSort') {
-        const selectedCards = newAnswers.accomplishmentCards || [];
-        if (selectedCards.length === 0) {
-            alert('Please select at least one Accomplishment Card to continue.');
-            return { isValid: false };
-        }
-        const skillCounts = {};
-        selectedCards.forEach(cardTitle => {
-            const cardData = sectionData.cards.find(c => c.title === cardTitle);
-            const skills = newAnswers[`skills-${cardData.id}`] || [];
-            skills.forEach(skill => {
-                skillCounts[skill] = (skillCounts[skill] || 0) + 1;
-            });
-        });
-        const sortedSkills = Object.keys(skillCounts).sort((a, b) => skillCounts[b] - skillCounts[a]);
-        newAnswers.top3Skills = sortedSkills.slice(0, 3); // This calculation is now captured
-    } else if (sectionData.type === 'partyGame') {
-        // ... (keep existing validation logic)
-        if ((newAnswers.hollandCode || []).length !== 3) {
-            alert('Please complete all three steps of The Party Game.');
-            return { isValid: false };
-        }
-    } else if (sectionData.type === 'checkbox') {
-        // ... (keep existing validation logic)
-        if ((newAnswers[sectionData.key] || []).length !== sectionData.limit) {
-            alert(`Please select exactly ${sectionData.limit} options.`);
-            return { isValid: false };
-        }
-    } else if (sectionData.type === 'multi-radio') {
-        for (const q of sectionData.questions) {
-            if (!newAnswers[q.id]) {
-                alert(`Please answer the question: "${q.question}"`);
+        // --- Validation Logic (remains the same) ---
+        if (sectionData.type === 'cardSort') {
+            const selectedCards = newAnswers.accomplishmentCards || [];
+            if (selectedCards.length === 0) {
+                alert('Please select at least one Accomplishment Card to continue.');
                 return { isValid: false };
             }
+            const skillCounts = {};
+            selectedCards.forEach(cardTitle => {
+                const cardData = sectionData.cards.find(c => c.title === cardTitle);
+                const skills = newAnswers[`skills-${cardData.id}`] || [];
+                skills.forEach(skill => {
+                    skillCounts[skill] = (skillCounts[skill] || 0) + 1;
+                });
+            });
+            const sortedSkills = Object.keys(skillCounts).sort((a, b) => skillCounts[b] - skillCounts[a]);
+            newAnswers.top3Skills = sortedSkills.slice(0, 3); // This calculation is now captured
+        } else if (sectionData.type === 'partyGame') {
+            // ... (keep existing validation logic)
+            if ((newAnswers.hollandCode || []).length !== 3) {
+                alert('Please complete all three steps of The Party Game.');
+                return { isValid: false };
+            }
+        } else if (sectionData.type === 'checkbox') {
+            // ... (keep existing validation logic)
+            if ((newAnswers[sectionData.key] || []).length !== sectionData.limit) {
+                alert(`Please select exactly ${sectionData.limit} options.`);
+                return { isValid: false };
+            }
+        } else if (sectionData.type === 'multi-radio') {
+            for (const q of sectionData.questions) {
+                if (!newAnswers[q.id]) {
+                    alert(`Please answer the question: "${q.question}"`);
+                    return { isValid: false };
+                }
+            }
         }
-    }
 
-    // --- Return the result instead of setting state ---
-    return { isValid: true, updatedAnswers: newAnswers };
-};
+        // --- Return the result instead of setting state ---
+        return { isValid: true, updatedAnswers: newAnswers };
+    };
 
     const handleAnswer = (key, value, type = 'radio', limit = 0) => {
         setUserAnswers(prev => {
@@ -246,17 +248,17 @@ const navigate = (direction) => {
         const fields = formatList(finalAnswers.fieldsOfInterest);
         const values = formatList(finalAnswers.coreValues);
         const hollandCode = finalAnswers.hollandCode ? finalAnswers.hollandCode.join('') : 'not specified';
-        const hollandDesc = finalAnswers.hollandCode ? formatList(finalAnswers.hollandCode.map(c => questions[1].options.find(o=>o.code===c).value)) : 'not specified';
+        const hollandDesc = finalAnswers.hollandCode ? formatList(finalAnswers.hollandCode.map(c => questions[1].options.find(o => o.code === c).value)) : 'not specified';
 
         const summaryText = `My ideal career is in the field of ${fields}, where I can use my top skills in ${skills}. I thrive in a ${hollandCode} (${hollandDesc}) environment, working with ${finalAnswers.peopleType?.toLowerCase().replace(/\./g, '')} people. My ideal workplace is ${finalAnswers.pace?.split(':')[0].toLowerCase()} and ${finalAnswers.structure?.split(':')[0].toLowerCase()}, preferably ${finalAnswers.location?.split(':')[0].toLowerCase()}. It is crucial that my work allows me to fulfill my mission ${finalAnswers.mission} and aligns with my core values of ${values}. I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary in the ${finalAnswers.salary?.split(' ')[0]} range. Regarding location, ${finalAnswers.familyProximity?.toLowerCase()}`;
-        
+
         const summaryHTML = `My ideal career is in the field of <strong>${fields}</strong>, where I can use my top skills in <strong>${skills}</strong>. I thrive in a <strong>${hollandCode} (${hollandDesc})</strong> environment, working with <strong>${finalAnswers.peopleType?.toLowerCase().replace(/\./g, '')}</strong> people. My ideal workplace is <strong>${finalAnswers.pace?.split(':')[0].toLowerCase()}</strong> and <strong>${finalAnswers.structure?.split(':')[0].toLowerCase()}</strong>, preferably <strong>${finalAnswers.location?.split(':')[0].toLowerCase()}</strong>. It is crucial that my work allows me to fulfill my mission <strong>${finalAnswers.mission}</strong> and aligns with my core values of <strong>${values}</strong>. I am seeking a <strong>${finalAnswers.responsibility?.split(':')[0]}</strong> role with a salary in the <strong>${finalAnswers.salary?.split(' ')[0]}</strong> range. Regarding location, <strong>${finalAnswers.familyProximity?.toLowerCase()}</strong>`;
 
         setResultsHTML(summaryHTML.replace(/<strong>/g, '<strong class="font-semibold text-indigo-700">'));
         const date = new Date();
         setCompletionDate(date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
 
-        fetchJobSuggestions(summaryText);
+        handleFetchJobs(summaryText);
 
         // --- ADD THIS LINE AT THE END ---
         sendResultsEmail(finalAnswers);
@@ -312,88 +314,23 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
         sendEmail(templateParams, subject, setEmailStatus);
     };
 
-      const fetchJobSuggestions = async (summary) => {
+    const handleFetchJobs = async (summary) => {
         setJobLoader(true);
         setJobError(false);
         setJobList([]);
 
-        const prompt = `Based on this career profile: "${summary}", generate a list of 10 diverse and specific job titles that are likely available in Toronto, Canada. For each job, provide the title, a brief 1-2 sentence description of the role, and the name of a real company in Toronto that has recently hired for or is known to hire for such a role.`;
-
-        let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-        
-        const payload = {
-            contents: chatHistory,
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "object",
-                    properties: {
-                        jobs: {
-                            type: "array",
-                            items: {
-                                type: "object",
-                                properties: {
-                                    title: { type: "string" },
-                                    company: { type: "string" },
-                                    description: { type: "string" }
-                                },
-                                required: ["title", "company", "description"]
-                            }
-                        }
-                    },
-                    required: ["jobs"]
-                }
-            },
-            safetySettings: [
-                {
-                    category: "HARM_CATEGORY_HARASSMENT",
-                    threshold: "BLOCK_NONE"
-                },
-                {
-                    category: "HARM_CATEGORY_HATE_SPEECH",
-                    threshold: "BLOCK_NONE"
-                },
-                {
-                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold: "BLOCK_NONE"
-                },
-                {
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold: "BLOCK_NONE"
-                }
-            ]
-        };
-
-        
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+        const userCity = "Toronto, Canada";
 
         try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            // Now this correctly calls the function from zaiService.js
+            const jobs = await fetchJobSuggestionsFromZai(summary, userCity);
 
-            if (!response.ok) {
-                // This will catch errors like 503 Service Unavailable
-                throw new Error(`API request failed with status ${response.status}`);
-            }
-
-            const result = await response.json();
-            
-            // This now safely checks for the response content
-            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            if (text) {
-                const parsedJson = JSON.parse(text);
-                setJobList(parsedJson.jobs);
+            if (jobs && jobs.length > 0) {
+                setJobList(jobs);
             } else {
-                // This will catch valid responses that were blocked by safety filters
-                console.log('Full API Response (for debugging empty content):', result);
-                throw new Error("No valid content received from API. This may be due to safety filters.");
+                setJobError(true);
             }
         } catch (error) {
-            console.error("Error fetching job suggestions:", error);
             setJobError(true);
         } finally {
             setJobLoader(false);
@@ -506,120 +443,120 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
         );
     };
 
-  return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-6 md:p-8">
+    return (
+        <div className="max-w-3xl mx-auto p-4 sm:p-6 md:p-8">
 
-        {/* Progress Bar */}
-        {currentSection > 0 && (
-            <div id="progressBarContainer" className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
-                <div id="progressBarFill" className="bg-indigo-600 h-2.5 rounded-full progress-bar-fill" style={{width: `${(currentSection / questions.length) * 100}%`}}></div>
-            </div>
-        )}
-
-        {/* App Sections */}
-        <div id="sections">
-
-            {/* Section 0: Welcome */}
-            {currentSection === 0 && (
-                <div id="section-0" className="bg-white p-8 rounded-xl shadow-lg">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-4">Your Career Blueprint</h1>
-                    <p className="text-gray-600 mb-6">Welcome! This isn't a test. It's a guided reflection to help you design a career that aligns with your unique skills, interests, and values. Answer honestly to create a clear profile of what truly motivates you.</p>
-                    
-                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
-                        <div className="flex">
-                            <div className="py-1"><svg className="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zM9 11v4h2v-4H9zm0-4h2v2H9V7z"/></svg></div>
-                            <div>
-                                <p className="font-bold">Disclaimer</p>
-                                <p className="text-sm">This questionnaire is a tool for self-discovery and does not guarantee any specific career outcome. Your results are intended to guide your personal research and exploration.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="userFirstName" className="block text-sm font-medium text-gray-700">First Name</label>
-                                <input type="text" id="userFirstName" className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" value={userFirstName} onChange={(e) => setUserFirstName(e.target.value)} />
-                            </div>
-                            <div>
-                                <label htmlFor="userFamilyName" className="block text-sm font-medium text-gray-700">Family Name</label>
-                                <input type="text" id="userFamilyName" className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" value={userFamilyName} onChange={(e) => setUserFamilyName(e.target.value)} />
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="userEmail" className="block text-sm font-medium text-gray-700">Email Address</label>
-                            <input type="email" id="userEmail" className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} />
-                        </div>
-                    </div>
-
-                    <div className="mt-8 text-right">
-                        <button onClick={() => navigate('next')} className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Start</button>
-                    </div>
+            {/* Progress Bar */}
+            {currentSection > 0 && (
+                <div id="progressBarContainer" className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                    <div id="progressBarFill" className="bg-indigo-600 h-2.5 rounded-full progress-bar-fill" style={{ width: `${(currentSection / questions.length) * 100}%` }}></div>
                 </div>
             )}
-            
-            {currentSection > 0 && currentSection <= questions.length && renderSection()}
 
-            {/* Results Section */}
-            {currentSection > questions.length && (
-                <div id="section-results" className="bg-white p-8 rounded-xl shadow-lg">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-4">Your Career Blueprint</h2>
-                    <p className="text-gray-600 mb-6">Based on your answers on <span className="font-semibold">{completionDate}</span>. Use this as your guide for exploring career opportunities.</p>
-                    
-                    <div className="space-y-6" dangerouslySetInnerHTML={{ __html: resultsHTML }}></div>
+            {/* App Sections */}
+            <div id="sections">
 
-                     {/* Job Suggestions Section */}
-                    <div id="jobSuggestionsContainer" className="mt-8">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4">Example Job Matches in Toronto, Canada</h3>
-                        {jobLoader && (
-                            <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg">
-                                <div className="loader"></div>
-                                <p className="mt-4 text-gray-600">Finding job opportunities that match your profile...</p>
+                {/* Section 0: Welcome */}
+                {currentSection === 0 && (
+                    <div id="section-0" className="bg-white p-8 rounded-xl shadow-lg">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-4">Your Career Blueprint</h1>
+                        <p className="text-gray-600 mb-6">Welcome! This isn't a test. It's a guided reflection to help you design a career that aligns with your unique skills, interests, and values. Answer honestly to create a clear profile of what truly motivates you.</p>
+
+                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
+                            <div className="flex">
+                                <div className="py-1"><svg className="fill-current h-6 w-6 text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zM9 11v4h2v-4H9zm0-4h2v2H9V7z" /></svg></div>
+                                <div>
+                                    <p className="font-bold">Disclaimer</p>
+                                    <p className="text-sm">This questionnaire is a tool for self-discovery and does not guarantee any specific career outcome. Your results are intended to guide your personal research and exploration.</p>
+                                </div>
                             </div>
-                        )}
-                        {jobList.length > 0 && (
-                            <ul className="space-y-4">
-                                {jobList.map((job, index) => (
-                                    <li key={index} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                                        <h4 className="font-bold text-lg text-indigo-700">{job.title}</h4>
-                                        <p className="font-semibold text-gray-800">{job.company}</p>
-                                        <p className="text-gray-600 mt-1">{job.description}</p>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                        {jobError && (
-                            <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg">
-                                <p>Sorry, we couldn't fetch job suggestions at this time. Please try again later.</p>
-                            </div>
-                        )}
-                    </div>
+                        </div>
 
-                    {/* --- Automatic Email Status Section --- */}
-                    <div className="text-center mt-8 py-4">
-                    {emailStatus === 'sending' && <p className="text-gray-600">Sending your results to {userEmail}...</p>}
-                    {emailStatus === 'sent' && <p className="text-green-600 font-semibold">✅ Results have been sent to your email!</p>}
-                    {emailStatus === 'error' && <p className="text-red-600 font-semibold">❌ There was an error sending your results.</p>}
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="userFirstName" className="block text-sm font-medium text-gray-700">First Name</label>
+                                    <input type="text" id="userFirstName" className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" value={userFirstName} onChange={(e) => setUserFirstName(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label htmlFor="userFamilyName" className="block text-sm font-medium text-gray-700">Family Name</label>
+                                    <input type="text" id="userFamilyName" className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" value={userFamilyName} onChange={(e) => setUserFamilyName(e.target.value)} />
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="userEmail" className="block text-sm font-medium text-gray-700">Email Address</label>
+                                <input type="email" id="userEmail" className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} />
+                            </div>
+                        </div>
+
+                        <div className="mt-8 text-right">
+                            <button onClick={() => navigate('next')} className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Start</button>
+                        </div>
                     </div>
-                    
-                     <div className="mt-6 text-center">
-                        <button onClick={() => navigate(0)} className="text-indigo-600 hover:text-indigo-800 font-medium transition">Start Over</button>
+                )}
+
+                {currentSection > 0 && currentSection <= questions.length && renderSection()}
+
+                {/* Results Section */}
+                {currentSection > questions.length && (
+                    <div id="section-results" className="bg-white p-8 rounded-xl shadow-lg">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Your Career Blueprint</h2>
+                        <p className="text-gray-600 mb-6">Based on your answers on <span className="font-semibold">{completionDate}</span>. Use this as your guide for exploring career opportunities.</p>
+
+                        <div className="space-y-6" dangerouslySetInnerHTML={{ __html: resultsHTML }}></div>
+
+                        {/* Job Suggestions Section */}
+                        <div id="jobSuggestionsContainer" className="mt-8">
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4">Example Job Matches in Toronto, Canada</h3>
+                            {jobLoader && (
+                                <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg">
+                                    <div className="loader"></div>
+                                    <p className="mt-4 text-gray-600">Finding job opportunities that match your profile...</p>
+                                </div>
+                            )}
+                            {jobList.length > 0 && (
+                                <ul className="space-y-4">
+                                    {jobList.map((job, index) => (
+                                        <li key={index} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                            <h4 className="font-bold text-lg text-indigo-700">{job.title}</h4>
+                                            <p className="font-semibold text-gray-800">{job.company}</p>
+                                            <p className="text-gray-600 mt-1">{job.description}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            {jobError && (
+                                <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg">
+                                    <p>Sorry, we couldn't fetch job suggestions at this time. Please try again later.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* --- Automatic Email Status Section --- */}
+                        <div className="text-center mt-8 py-4">
+                            {emailStatus === 'sending' && <p className="text-gray-600">Sending your results to {userEmail}...</p>}
+                            {emailStatus === 'sent' && <p className="text-green-600 font-semibold">✅ Results have been sent to your email!</p>}
+                            {emailStatus === 'error' && <p className="text-red-600 font-semibold">❌ There was an error sending your results.</p>}
+                        </div>
+
+                        <div className="mt-6 text-center">
+                            <button onClick={() => navigate(0)} className="text-indigo-600 hover:text-indigo-800 font-medium transition">Start Over</button>
+                        </div>
                     </div>
+                )}
+
+            </div>
+
+            {/* Navigation Buttons */}
+            {currentSection > 0 && currentSection <= questions.length && (
+                <div id="navButtons" className="flex justify-between mt-8">
+                    <button id="backButton" onClick={() => navigate('back')} className="bg-gray-200 text-gray-800 font-semibold py-2 px-6 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition">Back</button>
+                    <button id="nextButton" onClick={() => navigate('next')} className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Next</button>
                 </div>
             )}
 
         </div>
-
-        {/* Navigation Buttons */}
-        {currentSection > 0 && currentSection <= questions.length && (
-            <div id="navButtons" className="flex justify-between mt-8">
-                <button id="backButton" onClick={() => navigate('back')} className="bg-gray-200 text-gray-800 font-semibold py-2 px-6 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition">Back</button>
-                <button id="nextButton" onClick={() => navigate('next')} className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Next</button>
-            </div>
-        )}
-
-    </div>
-  );
+    );
 };
 
 export default CareerBlueprint;
