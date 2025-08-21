@@ -364,7 +364,7 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
             ]
         };
 
-        const apiKey = process.env.REACT_APP_GEMINI_API_KEY || 'AIzaSyCebIh_jt43KP0T-Nn0e83RWwzGYG5Sjn8';
+        
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
         try {
