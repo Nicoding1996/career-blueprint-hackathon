@@ -1,9 +1,7 @@
 import { fetchJobSuggestionsFromZai } from './zaiService.js';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { sendEmail } from './emailService.js';
 
-
-const consultantEmail = "brkthru.consulting@gmail.com";
 
 const questions = [
     {
