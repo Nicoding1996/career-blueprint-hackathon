@@ -97,4 +97,47 @@ export const fetchJobSuggestionsFromZai = async (summary, city) => {
     }
 };
 
+export const generateBrandingText = async (summary) => {
+    console.log("Attempting to generate branding text...");
+
+    const prompt = `Based on this career profile: "${summary}", do two things: 1. Write a compelling, professional 'About' section for a LinkedIn profile, in the first person. 2. Generate 5 resume-friendly bullet points that highlight the user's key strengths and career desires, starting each with an action verb. Format the response as a single block of text with clear headings for "LinkedIn Summary" and "Resume Bullet Points". Use markdown for the headings (e.g., "### LinkedIn Summary").`;
+
+    // This payload is simpler because we expect a direct text response
+    const payload = {
+        model: "glm-4.5",
+        messages: [{ role: "user", content: prompt }]
+    };
+
+    try {
+        const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ZAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error("Branding Text API Error:", errorBody);
+            throw new Error(`API Error: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        // Extract the text content directly from the response
+        if (result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.content) {
+            console.log("Successfully received branding text.");
+            return result.choices[0].message.content;
+        } else {
+            console.error("Unexpected API response structure for branding text:", result);
+            throw new Error("Invalid response structure for branding text.");
+        }
+
+    } catch (error) {
+        console.error("Error in generateBrandingText:", error);
+        return "Sorry, we couldn't generate your branding text at this time. Please try again later.";
+    }
+};
 // ----------------- END: REPLACE THE ENTIRE FUNCTION -----------------
