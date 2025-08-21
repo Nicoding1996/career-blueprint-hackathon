@@ -1,4 +1,4 @@
-import { fetchJobSuggestionsFromZai, generateBrandingText } from './zaiService.js';
+import { fetchJobSuggestionsFromZai, generateBrandingText, generateInterviewPrep } from './zaiService.js';
 import React, { useState } from 'react';
 import { sendEmail } from './emailService.js';
 import { marked } from 'marked';
@@ -112,6 +112,9 @@ const CareerBlueprint = () => {
     const [completionDate, setCompletionDate] = useState('');
     const [brandingText, setBrandingText] = useState('');
     const [isBrandingLoading, setIsBrandingLoading] = useState(false);
+    const [selectedJob, setSelectedJob] = useState(null);
+    const [interviewPrep, setInterviewPrep] = useState('');
+    const [isInterviewLoading, setIsInterviewLoading] = useState(false);
     const [resultsHTML, setResultsHTML] = useState('');
 
     const navigate = (direction) => {
@@ -267,18 +270,17 @@ const CareerBlueprint = () => {
         sendResultsEmail(finalAnswers);
     };
 
-    const handleBrandingRequest = async () => {
-        setIsBrandingLoading(true);
-        setBrandingText(''); // Clear any previous text
-
-        // We need the summary text to send to the AI. We can get it from the resultsHTML state.
-        // This is a simple way to strip the HTML tags to get the plain text.
+    const handleInterviewRequest = async () => {
+        if (!selectedJob) {
+            alert("Please select a job from the list first.");
+            return;
+        }
+        setIsInterviewLoading(true);
+        setInterviewPrep('');
         const summaryText = resultsHTML.replace(/<[^>]*>?/gm, '');
-
-        const result = await generateBrandingText(summaryText);
-
-        setBrandingText(result);
-        setIsBrandingLoading(false);
+        const result = await generateInterviewPrep(summaryText, selectedJob.title);
+        setInterviewPrep(result);
+        setIsInterviewLoading(false);
     };
 
 
@@ -353,6 +355,20 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
         }
     };
 
+    const handleBrandingRequest = async () => {
+    setIsBrandingLoading(true);
+    setBrandingText(''); // Clear any previous text
+
+    // We need the summary text to send to the AI. We can get it from the resultsHTML state.
+    // This is a simple way to strip the HTML tags to get the plain text.
+    const summaryText = resultsHTML.replace(/<[^>]*>?/gm, '');
+
+    const result = await generateBrandingText(summaryText);
+    
+    setBrandingText(result);
+    setIsBrandingLoading(false);
+};
+
     const renderOptions = (options, type, name, limit = 0) => {
         return (
             <div className="space-y-3">
@@ -382,7 +398,7 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
             <div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     {sectionData.cards.map(card => (
-                        <label key={card.id} className={`accomplishment-card cursor-pointer bg-white p-4 rounded-lg border-2 flex flex-col items-center justify-center text-center h-32 ${userAnswers.accomplishmentCards?.includes(card.title) ? 'selected' : 'border-gray-200'}`}>
+                        <label key={card.id} className={`accomplishment-card cursor-pointer bg-white p-4 rounded-lg border-2 flex flex-col items-center justify-center text-center h-32 transition-all ${userAnswers.accomplishmentCards?.includes(card.title) ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-indigo-300'}`}>
                             <input type="checkbox" className="hidden" onChange={() => handleAnswer(sectionData.key, card.title, 'cardSort', sectionData.limit)} checked={userAnswers.accomplishmentCards?.includes(card.title)} />
                             {card.icon}
                             <span className="mt-2 font-medium text-sm text-gray-700">{card.title}</span>
@@ -545,7 +561,11 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
                             {jobList.length > 0 && (
                                 <ul className="space-y-4">
                                     {jobList.map((job, index) => (
-                                        <li key={index} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                        <li
+                                            key={index}
+                                            className={`p-4 bg-white border rounded-lg shadow-sm cursor-pointer transition-all ${selectedJob?.title === job.title ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'}`}
+                                            onClick={() => setSelectedJob(job)}
+                                        >
                                             <h4 className="font-bold text-lg text-indigo-700">{job.title}</h4>
                                             <p className="font-semibold text-gray-800">{job.company}</p>
                                             <p className="text-gray-600 mt-1">{job.description}</p>
@@ -560,12 +580,14 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
                             )}
                         </div>
 
+                        {/* --- ACTION HUB --- */}
                         <div id="actionHubContainer" className="mt-8">
                             <h3 className="text-2xl font-bold text-gray-900 mb-4">Your Career Action Hub</h3>
+
+                            {/* Card 1: Brand Me for Success */}
                             <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
                                 <h4 className="font-bold text-lg text-indigo-700">Brand Me for Success</h4>
                                 <p className="text-gray-600 mt-1 mb-4">Generate a professional LinkedIn summary and resume bullet points based on your profile.</p>
-
                                 <button
                                     onClick={handleBrandingRequest}
                                     className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition disabled:bg-gray-400"
@@ -573,13 +595,30 @@ I am seeking a ${finalAnswers.responsibility?.split(':')[0]} role with a salary 
                                 >
                                     {isBrandingLoading ? 'Generating...' : 'Generate My Branding Text'}
                                 </button>
-
-                                {/* This is where the result will be displayed */}
                                 {brandingText && (
                                     <div
                                         className="mt-4 p-4 bg-gray-50 rounded-lg font-sans text-sm text-gray-800 border prose"
                                         dangerouslySetInnerHTML={{ __html: marked(brandingText) }}
                                     />
+                                )}
+                            </div>
+
+                            {/* Card 2: Interview Prep */}
+                            <div className="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                <h4 className="font-bold text-lg text-indigo-700">Prepare For My Interview</h4>
+                                <p className="text-gray-600 mt-1 mb-4">Generate tailored interview questions and talking points for a selected job.</p>
+                                <button
+                                    onClick={handleInterviewRequest}
+                                    className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition disabled:bg-gray-400"
+                                    disabled={!selectedJob || isInterviewLoading}
+                                >
+                                    {isInterviewLoading ? 'Generating...' : 'Generate Interview Prep'}
+                                </button>
+                                {interviewPrep && (
+                                    <div
+                                        className="mt-4 p-4 bg-gray-50 rounded-lg font-sans text-sm text-gray-800 border prose"
+                                        dangerouslySetInnerHTML={{ __html: marked(interviewPrep) }}
+                                    ></div>
                                 )}
                             </div>
                         </div>

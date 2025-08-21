@@ -1,8 +1,6 @@
 const ZAI_API_KEY = process.env.REACT_APP_ZAI_API_KEY;
 const API_ENDPOINT = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 
-// ----------------- START: REPLACE THE ENTIRE FUNCTION -----------------
-
 export const fetchJobSuggestionsFromZai = async (summary, city) => {
     console.log("Attempting to fetch jobs with API Key:", ZAI_API_KEY ? "Key Found" : "Key NOT Found!");
 
@@ -62,8 +60,6 @@ export const fetchJobSuggestionsFromZai = async (summary, city) => {
         const result = await response.json();
         console.log("Full API Response from Z.ai:", JSON.stringify(result, null, 2)); // Log the full response for debugging
 
-        // --- NEW ROBUST CHECKING ---
-        // Check if choices array exists and is not empty
         if (!result.choices || result.choices.length === 0) {
             console.error("API Error: 'choices' array is missing or empty in the response.");
             throw new Error("Invalid response structure from Z.ai API.");
@@ -71,17 +67,15 @@ export const fetchJobSuggestionsFromZai = async (summary, city) => {
 
         const message = result.choices[0].message;
 
-        // Check if the model decided to call a tool
         if (message && message.tool_calls && message.tool_calls.length > 0) {
             const toolCall = message.tool_calls[0];
             if (toolCall.function && toolCall.function.name === "get_job_suggestions") {
                 const jobData = JSON.parse(toolCall.function.arguments);
                 console.log("Successfully received jobs from Z.ai:", jobData.jobs);
-                return jobData.jobs; // Success!
+                return jobData.jobs;
             }
         }
         
-        // If we get here, the API responded but didn't use the tool as expected.
         console.error("API did not return the expected 'get_job_suggestions' tool call.");
         if (message && message.content) {
             console.error("API returned a text message instead:", message.content);
@@ -93,7 +87,7 @@ export const fetchJobSuggestionsFromZai = async (summary, city) => {
         console.error("This error was caught by the try...catch block. It could be a network issue or an error from the checks above.");
         console.error(error);
         console.error("-----------------------");
-        return []; // Return an empty array to prevent the app from crashing
+        return [];
     }
 };
 
@@ -102,7 +96,6 @@ export const generateBrandingText = async (summary) => {
 
     const prompt = `Based on this career profile: "${summary}", do two things: 1. Write a compelling, professional 'About' section for a LinkedIn profile, in the first person. 2. Generate 5 resume-friendly bullet points that highlight the user's key strengths and career desires, starting each with an action verb. Format the response as a single block of text with clear headings for "LinkedIn Summary" and "Resume Bullet Points". Use markdown for the headings (e.g., "### LinkedIn Summary").`;
 
-    // This payload is simpler because we expect a direct text response
     const payload = {
         model: "glm-4.5",
         messages: [{ role: "user", content: prompt }]
@@ -126,7 +119,6 @@ export const generateBrandingText = async (summary) => {
 
         const result = await response.json();
 
-        // Extract the text content directly from the response
         if (result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.content) {
             console.log("Successfully received branding text.");
             return result.choices[0].message.content;
@@ -140,4 +132,39 @@ export const generateBrandingText = async (summary) => {
         return "Sorry, we couldn't generate your branding text at this time. Please try again later.";
     }
 };
-// ----------------- END: REPLACE THE ENTIRE FUNCTION -----------------
+
+export const generateInterviewPrep = async (summary, jobTitle) => {
+    const prompt = `A candidate with this career profile: "${summary}" is interviewing for a "${jobTitle}" position. Generate 5 likely behavioral interview questions. For each question, provide a short tip on how the candidate can leverage their personal profile in their answer. Format the response as a single block of text using markdown for headings and bullet points.`;
+    const payload = { model: "glm-4.5", messages: [{ role: "user", content: prompt }] };
+
+    try {
+        const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ZAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error("Interview Prep API Error:", errorBody);
+            throw new Error(`API Error: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        if (result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.content) {
+            console.log("Successfully received interview prep text.");
+            return result.choices[0].message.content;
+        } else {
+            console.error("Unexpected API response structure for interview prep:", result);
+            throw new Error("Invalid response structure for interview prep.");
+        }
+
+    } catch (error) {
+        console.error("Error in generateInterviewPrep:", error);
+        return "Sorry, we couldn't generate your interview prep text at this time. Please try again later.";
+    }
+};
